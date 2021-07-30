@@ -1,0 +1,3 @@
+[submodule "PopCapToRainbow.js/PopEngineCommon"]
+	path = PopCapToRainbow.js/PopEngineCommon
+	url = https://github.com/NewChromantics/PopEngineCommon.git
