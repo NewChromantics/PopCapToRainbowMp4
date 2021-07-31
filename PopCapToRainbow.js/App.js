@@ -1,11 +1,36 @@
 export default 'App.js';
 import Pop from './PopEngineCommon/PopEngine.js'
 import PopCapDecoder from './PopCap.js'
+import {Mp4FragmentedEncoder} from './PopEngineCommon/Mp4.js'
 
-let TableGui = null;
-let Sections = [];
+class FileGui
+{
+	constructor(Name)
+	{
+		this.Sections = [];
+		this.Gui = new Pop.Gui.Table(null,Name);
+	}
+	
+	Clear()
+	{
+		this.Sections = [];
+		this.Gui.SetValue(this.Sections);
+	}
+	
+	PushRows(Rows)
+	{
+		this.Sections.push(...Rows);
+		this.Gui.SetValue(this.Sections);
+	}
+};
 
-function PushFrames(Frames)
+
+let Mp4TableGui = null;
+let PopCapTableGui = null;
+
+
+
+function PushGuiFrames(Gui,Frames)
 {
 	function ToRow(Frame)
 	{
@@ -21,21 +46,43 @@ function PushFrames(Frames)
 	}
 
 	const Rows = Frames.map(ToRow);
-	Sections.push(...Rows);
-	TableGui.SetValue(Sections);
+	Gui.PushRows(Rows);
 }
 
+const TrackMap = [];	//	streamname -> index = id
+let PendingMp4 = null;
 
-function ClearSections()
+function GetTrackId(StreamName)
 {
-	Sections = [];
+	let Index = TrackMap.indexOf(StreamName);
+	if ( Index < 0 )
+	{
+		TrackMap.push(StreamName);
+		Index = TrackMap.indexOf(StreamName);
+	}
+	return Index;
 }
 
+function PushMp4Frame(Frame)
+{
+	const DataStream = Frame.Meta.StreamName;
+	const DataTrack = GetTrackId(DataStream);
+	const MetaStream = Frame.Meta.StreamName + '_Meta';
+	const MetaTrack = GetTrackId(MetaStream);
+	
+	if ( !PendingMp4 )
+		PendingMp4 = new Mp4FragmentedEncoder();
+	
+	const MetaData = JSON.stringify(Frame.Meta);
+	const Time = Frame.Meta.OutputTimeMs;
+	PendingMp4.PushSample( Frame.Data, Time, Time, DataTrack );
+	PendingMp4.PushSample( MetaData, Time, Time, MetaTrack );
+}
 
 export async function LoadPopCap(Filename)
 {
 	const Decoder = new PopCapDecoder();
-	ClearSections();
+	PopCapTableGui.Clear();
 	
 	//	async callback for new data
 	async function ReadDecodedFrameThread()
@@ -43,7 +90,8 @@ export async function LoadPopCap(Filename)
 		while ( true )
 		{
 			const Frame = await Decoder.WaitForNextFrame();
-			PushFrames( [Frame] );
+			PushGuiFrames( PopCapTableGui, [Frame] );
+			PushMp4Frame(Frame);
 			//	detect EOF
 		}
 	}
@@ -67,10 +115,16 @@ export async function LoadPopCap(Filename)
 	Pop.Debug(`File loaded; ${WaitAllResult}`,WaitAllResult);
 }
 
-export function SetTable(Name)
+export function SetMp4Table(Name)
 {
-	TableGui = new Pop.Gui.Table(null,Name);
-	DragAndDropThread(TableGui).catch(Pop.Warning);
+	Mp4TableGui = new FileGui(Name);
+	//DragAndDropThread(TableGui).catch(Pop.Warning);
+}
+
+export function SetPopCapTable(Name)
+{
+	PopCapTableGui = new FileGui(Name);
+	DragAndDropThread(PopCapTableGui.Gui).catch(Pop.Warning);
 }
 
 async function DragAndDropThread(DropTargetElement)

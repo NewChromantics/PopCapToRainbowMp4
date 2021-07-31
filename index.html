@@ -5,32 +5,31 @@
 body
 {
 	display:	flex;
-	flex-direction:	column;
+	flex-direction:	row;
 }
 
 table
 {
+	flex-grow:	0.5;
 	min-height:	5em;
 	background:	#eee;
 }
 
-#Footer
-{
-	flex-grow:	1;
-}
 
 </style>
 </head>
 <body>
 
+<table id="PopCapTable"></table>
 <table id="Mp4Table"></table>
-<div id="Footer"></div>
 
 <script type=module>
 import * as App from './PopCapToRainbow.js/App.js'
 
-App.SetTable('Mp4Table');
+App.SetPopCapTable('PopCapTable');
+App.SetMp4Table('Mp4Table');
 App.LoadPopCap('ArKitWithPosition_1599506974441.PopCap');
+
 </script>
 
 </body>
