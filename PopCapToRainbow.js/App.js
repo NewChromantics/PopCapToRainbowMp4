@@ -158,7 +158,7 @@ function GetTrackId(StreamName)
 		TrackMap.push(StreamName);
 		Index = TrackMap.indexOf(StreamName);
 	}
-	return Index;
+	return Index+1;
 }
 /*
 async function EncodingMp4Thread(Mp4)
