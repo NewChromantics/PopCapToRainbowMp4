@@ -75,9 +75,18 @@ export default class PopCapDecoder
 			}
 			
 			//	bytes next
-			Frame.Data = await this.FileReader.ReadUntilMatch(PacketMarker,false);
-			
-			this.OnFrame(Frame);
+			try
+			{
+				Frame.Data = await this.FileReader.ReadUntilMatch(PacketMarker,false);
+				this.OnFrame(Frame);
+			}
+			catch(e)
+			{
+				if ( e == 'eof' )
+					this.OnFrame(e);
+				else
+					throw e;
+			}
 		}
 	}
 }

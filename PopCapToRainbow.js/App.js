@@ -3,6 +3,7 @@ import Pop from './PopEngineCommon/PopEngine.js'
 import PopCapDecoder from './PopCap.js'
 import {Mp4FragmentedEncoder} from './PopEngineCommon/Mp4.js'
 import {Mp4Decoder} from './PopEngineCommon/Mp4.js'
+import {JoinTypedArrays} from './PopEngineCommon/PopApi.js'
 
 
 class FileGui
@@ -69,11 +70,17 @@ export async function LoadMp4(WaitForBytes)
 		await FilePromise;
 		Mp4.PushEndOfFile();
 		*/
+		const Mp4Chunks = [];
 		while(true)
 		{
 			const Bytes = await WaitForBytes();
+			if ( Bytes == 'eof' )
+				break;
 			Mp4.PushData(Bytes);
+			Mp4Chunks.push(Bytes);
 		}
+		const FinalMp4 = JoinTypedArrays(...Mp4Chunks);
+		Pop.FileSystem.WriteToFile('Hello.mp4',FinalMp4);
 	}
 	const ReadFilePromise = ReadFileThread();
 }
@@ -92,7 +99,7 @@ function PushMp4Atoms(Gui,Atoms)
 	}
 
 	const Rows = Atoms.map(ToRow);
-	Gui.PushRows(...Rows);
+	Gui.PushRows(Rows);
 }
 
 function PushMp4Samples(Gui,Samples)
@@ -110,7 +117,7 @@ function PushMp4Samples(Gui,Samples)
 	}
 
 	const Rows = Samples.map(ToRow);
-	Gui.PushRows(...Rows);
+	Gui.PushRows(Rows);
 }
 
 function PushGuiFrames(Gui,Frames)
@@ -118,6 +125,13 @@ function PushGuiFrames(Gui,Frames)
 	function ToRow(Frame)
 	{
 		const Row = {};
+		
+		if ( Frame == 'eof' )
+		{
+			Row.Stream = 'End of file';
+			return Row;
+		}
+
 		Row.Stream = Frame.Meta.Stream;
 		//Row.CameraName = Frame.Meta.CameraName;
 		Row.OutputTimeMs = Frame.Meta.OutputTimeMs;
@@ -165,11 +179,6 @@ async function EncodingMp4Thread(Mp4)
 
 function PushMp4Frame(Frame)
 {
-	const DataStream = Frame.Meta.StreamName;
-	const DataTrack = GetTrackId(DataStream);
-	const MetaStream = Frame.Meta.StreamName + '_Meta';
-	const MetaTrack = GetTrackId(MetaStream);
-	
 	if ( !PendingMp4 )
 	{
 		PendingMp4 = new Mp4FragmentedEncoder();
@@ -180,6 +189,18 @@ function PushMp4Frame(Frame)
 		}
 		LoadMp4(WaitForMp4Bytes);
 	}
+	
+	if ( Frame == 'eof' )
+	{
+		PendingMp4.PushEndOfFile();
+		return;
+	}
+
+	const DataStream = Frame.Meta.StreamName;
+	const DataTrack = GetTrackId(DataStream);
+	const MetaStream = Frame.Meta.StreamName + '_Meta';
+	const MetaTrack = GetTrackId(MetaStream);
+	
 	
 	const MetaData = JSON.stringify(Frame.Meta);
 	
