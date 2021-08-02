@@ -104,13 +104,15 @@ function PushMp4Atoms(Gui,Atoms)
 
 function PushMp4Samples(Gui,Samples)
 {
+	if ( !Samples )
+		return;
 	function ToRow(Sample)
 	{
 		const Row = {};
 		Row.DecodeTimeMs = Sample.DecodeTimeMs;
 		Row.PresentationTimeMs = Sample.PresentationTimeMs;
 		Row.ContentSize = Sample.DataSize;
-		Row.Keyframe = Sample.IsKeyframe ? 'Keyframe' : '';
+		//Row.Keyframe = Sample.IsKeyframe ? 'Keyframe' : '';
 		Row.FilePosition = Sample.FilePosition || Sample.DataFilePosition || Sample.DataPosition;
 		Row.Flags = `0x` + Sample.Flags.toString(16);
 		return Row;
@@ -135,7 +137,7 @@ function PushGuiFrames(Gui,Frames)
 		Row.Stream = Frame.Meta.Stream;
 		//Row.CameraName = Frame.Meta.CameraName;
 		Row.OutputTimeMs = Frame.Meta.OutputTimeMs;
-		Row.Keyframe = Frame.Meta.Keyframe;
+		//Row.Keyframe = Frame.Meta.Keyframe;
 		Row.WidthHeight = `${Frame.Meta.Width}x${Frame.Meta.Height}`;
 		//Row.Meta = Frame.Meta;
 		Row.DataSize = Frame.Data.length;
@@ -208,8 +210,10 @@ function PushMp4Frame(Frame)
 		Mp4BaseTimestamp = Frame.Meta.OutputTimeMs;
 	
 	const Time = Frame.Meta.OutputTimeMs - Mp4BaseTimestamp;
-	PendingMp4.PushSample( Frame.Data, Time, Time, DataTrack );
-	PendingMp4.PushSample( MetaData, Time, Time, MetaTrack );
+	//PendingMp4.PushSample( Frame.Data, Time, Time, DataTrack );
+	//PendingMp4.PushSample( MetaData, Time, Time, MetaTrack );
+	if ( DataTrack == 1 )
+		PendingMp4.PushSample( Frame.Data, Time, Time, DataTrack );
 }
 
 export async function LoadPopCap(Filename)
